@@ -81,7 +81,7 @@ def _compute_score_terminal(serie_y_true, serie_y_pred, labels, freqs):
 
     # Step 1.
     terminal_f1s = f1_score(terminal_y_true_nonnan, terminal_y_pred_nonnan,
-                            labels=labels, average=None)
+                            labels=labels, average=None, zero_division=1)
     # replace argument 'zero_division=1' for version compatibility
     obs_labels_true = np.unique(terminal_y_true_nonnan.values)
     obs_labels_pred = np.unique(terminal_y_pred_nonnan.values)
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     # CSV_FILE_Y_TRUE = '--------.csv'
     # CSV_FILE_Y_PRED = '--------.csv'
     CSV_FILE_Y_TRUE = 'ytest.csv'
-    CSV_FILE_Y_PRED = 'yrandom.csv'
+    CSV_FILE_Y_PRED = 'y_random.csv'
 
     df_y_true = pd.read_csv(CSV_FILE_Y_TRUE, index_col=0, sep=',')
     df_y_pred = pd.read_csv(CSV_FILE_Y_PRED, index_col=0, sep=',')
