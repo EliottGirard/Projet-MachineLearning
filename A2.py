@@ -31,7 +31,7 @@ def create_df_ytrain(data_):
 
 
 def create_df_x(data_, x_col_):
-    df_ = data_.copy()
+    df_ = data_[x_col_].copy()
     for col in x_col_:
         df_average = np.average(df_[col].dropna())
         df_[col] = df_[col].fillna(df_average)
@@ -101,13 +101,18 @@ from sklearn.ensemble import RandomForestClassifier
 
 def train_and_predict(train_, target_, test_):
     # train and predict using RandomForest
-    clf_= RandomForestClassifier(random_state=42, n_estimators= 100)
+    clf_= RandomForestClassifier(random_state=42, n_estimators= 30)
     clf_.fit(train_, target_)
     pred_ = clf_.predict(test_)
     return pred_
 
 
+def cross_valid(train_, target_, test_):
+
+    return 0
+
 def get_accuracy(pred_, df_test_):
+    # Test if results are correct
     acc = []
     for col in pred_.columns:
         acc_col = pred_[col]==df_test_[col]
@@ -117,18 +122,25 @@ def get_accuracy(pred_, df_test_):
 
 
 def write_pred(pred_, test_):
+    # Create df from predictions array
     df = pd.DataFrame([], index=test_.index, columns=test_.columns)
     for i in range(pred_.shape[1]):
         df[df.columns[i]] = pred_[:, i]
-    for i in df.columns:
-        df[i] = df[i].map({0:'Offline', 1:'Down', 2:'Available', 3:'Passive', 4:'Charging'})
     return df
 
 
-def plot_pred(train_, test_, df_pred_, col_):
-    plt.plot(range(len(train_)), train_[col_])
-    #plt.plot(range(len(train_), len(train_)+len(test_)), df_pred_[col_])
+def create_csv(df_):
+    # map int --> str and write csv
+    df = df_.copy()
+    for i in df.columns:
+        df[i] = df[i].map({0:'Offline', 1:'Down', 2:'Available', 3:'Passive', 4:'Charging'})
+    df.to_csv("y_random.csv")
 
+
+def plot_pred(train_, test_, df_pred_, col_):
+    plt.plot(range(len(train_)), train_[col_], 'b')
+    plt.plot(range(len(train_), len(train_)+len(test_)), df_pred_[col_], 'r')
+    plt.show()
 
 def test(data_, df_, col_):
     # Change str to int and fill NaN
@@ -144,25 +156,20 @@ def test(data_, df_, col_):
 
 
 def corr_x(df_x):
+    # Correlation beetween xtrain var
+    sns.set_theme(style="white")
     corr = df_x.corr()
-    ax = sns.heatmap(
-        corr,
-        vmin=-1, vmax=1, center=0,
-        cmap=sns.diverging_palette(20, 220, n=200),
-        square=True
-    )
-    ax.set_xticklabels(
-        ax.get_xticklabels(),
-        rotation=45,
-        horizontalalignment='right'
-    );
+    f, ax = plt.subplots(figsize=(9, 6))
+    sns.heatmap(corr, vmin=-1, vmax=1, center=0, cmap=sns.diverging_palette(20, 220, n=200), square=True)
+    plt.show()
 
 
 # Get the data
 data_ytrain, data_xtest, df_ytest, data_xtrain, data_static_info = read_data()
-use_test = False
+use_test = True
 use_x = True
-x_col = data_xtest.columns.drop('traffic_state')
+use_cross_valid = False
+x_col = data_xtest.columns.drop(['traffic_state', 'wind_gust_speed'])
 
 # Clean data and map str --> int
 df_ytrain = create_df_ytrain(data_ytrain)
@@ -178,14 +185,17 @@ test = create_inputs(df_test, x_col)
 
 # Predict using random forest
 target = df_train[data_ytrain.columns]
-predictions = train_and_predict(train, target, test)
+if use_cross_valid:
+    predictions = cross_valid(train, target, test)
+else:
+    predictions = train_and_predict(train, target, test)
 
-# If cross-validation :
+# Write results in a Dataframe
+df_pred = write_pred(predictions, df_test)
+
+# Get accuracy or write in .csv :
 if not(use_test):
-    accuracy = get_accuracy(predictions, df_test)
+    accuracy = get_accuracy(df_pred, df_test)
     print(accuracy)
-
-# Map back int --> str  and write results in a Dataframe
-if use_test:
-    df_pred = write_pred(predictions, df_ytest)
-    df_pred.to_csv("y_random.csv")
+else:
+    create_csv(df_pred)
